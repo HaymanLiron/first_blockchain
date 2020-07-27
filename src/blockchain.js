@@ -70,9 +70,9 @@ class Blockchain {
             block.height = self.chain.length;
             // UTC timestamp
             block.time = new Date().getTime().toString().slice(0,-3);
-            if (self.getChainHeight()>0) {
+            if (await self.getChainHeight()>0) {
               // previous block hash
-              block.previousHash = self.getBlockByHeight(self.chain.length - 1).hash;
+              block.previousBlockHash = self.chain[block.height - 1].hash;
             }
             // SHA256 requires a string of data
             block.hash = await SHA256(JSON.stringify(block)).toString();
@@ -128,9 +128,8 @@ class Blockchain {
                 let verificationStatus = bitcoinMessage.verify(message, address, signature);
 
                 if (verificationStatus) {
-                    let block = new BlockClass.Block({star});
-                    block.owner = address; // to search based on address
-                    block = await self._addBlock(block);
+                    let block = new BlockClass.Block({owner: address, data: star})
+                    await this._addBlock(block);
                     resolve(block); 
                 } else {
                     reject(new Error('Failed to verify message, please ensure it is signed correctly.'));
@@ -177,13 +176,20 @@ class Blockchain {
      */
     getStarsByWalletAddress (address) {
         let self = this;
-        let stars = [];
+        let ownedStars = [];
         return new Promise(async (resolve, reject) => {
-            let ownedBlocks = self.chain.filter(block => block.owner === address);
-            if (ownedBlocks.length === 0) {
-                reject(new Error('Address not found.'));
+
+            for (let block of self.chain) {
+                let decodedOutput = await block.getBData();
+
+                if (decodedOutput.owner === address) {
+                    ownedStars.push(decodedOutput.data);
+                }
             }
-            resolve(ownedBlocks.map(block => JSON.parse(hex2ascii(block.body))));
+            if (ownedStars.length === 0) {
+                resolve("No stars owned by this address");
+            }
+            resolve(ownedStars);
         });
     }
 

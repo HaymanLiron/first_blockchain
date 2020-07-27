@@ -16,7 +16,6 @@ class Block {
 
     // Constructor - argument data will be the object containing the transaction data
 	constructor(data){
-        this.owner = null;                                          // added in order to search based on address
 		this.hash = null;                                           // Hash of the block
 		this.height = 0;                                            // Block Height (consecutive number of each block)
 		this.body = Buffer.from(JSON.stringify(data), 'ascii').toString('hex');   // Will contain the transactions stored in the block, by default it will encode the data
@@ -39,12 +38,12 @@ class Block {
     validate() {
         let self = this;
         return new Promise((resolve, reject) => {
-            // Save in auxiliary variable the current block hash
-            let calculatedHash = SHA256(JSON.stringify(self)).toString(); 
-            // Recalculate the hash of the Block
-            // Comparing if the hashes changed
-            // Returning the Block is not valid
-            resolve (calculatedHash === self.hash);
+
+            let currentHash = self.hash;
+            self.hash = null;
+            let newHash = SHA256(JSON.stringify(self)).toString();
+            self.hash = currentHash;
+            resolve (currentHash === newHash);
         });
     }
 
