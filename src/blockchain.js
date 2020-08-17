@@ -66,20 +66,26 @@ class Blockchain {
         let self = this;
         return new Promise(async (resolve, reject) => {
 
-            // block height
-            block.height = self.chain.length;
-            // UTC timestamp
-            block.time = new Date().getTime().toString().slice(0,-3);
-            if (await self.getChainHeight()>0) {
-              // previous block hash
-              block.previousBlockHash = self.chain[block.height - 1].hash;
+            try {
+                // block height
+                block.height = self.chain.length;
+                // UTC timestamp
+                block.time = new Date().getTime().toString().slice(0,-3);
+                if (await self.getChainHeight()>=0) {
+                  // previous block hash
+                  block.previousBlockHash = self.chain[block.height - 1].hash;
+                }
+                // SHA256 requires a string of data
+                block.hash = await SHA256(JSON.stringify(block)).toString();
+                // add block to chain
+                self.chain.push(block);
+                self.height = self.height + 1;
+                resolve(block);                
             }
-            // SHA256 requires a string of data
-            block.hash = await SHA256(JSON.stringify(block)).toString();
-            // add block to chain
-            self.chain.push(block);
-            self.height = self.height + 1;
-            resolve(block);
+            catch (err) {
+                reject("Error in attempt to add Block!" + err);
+
+            }
         });
     }
 
@@ -183,7 +189,7 @@ class Blockchain {
                 let decodedOutput = await block.getBData();
 
                 if (decodedOutput.owner === address) {
-                    ownedStars.push(decodedOutput.data);
+                    ownedStars.push(decodedOutput);
                 }
             }
             if (ownedStars.length === 0) {
